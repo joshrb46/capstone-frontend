@@ -17,7 +17,7 @@ export default function Landing() {
 
   // avatar state: emoji or custom sprite
   const [selectedEmoji, setSelectedEmoji] = useState(AVATARS[0]);
-  const [iconMode, setIconMode] = useState("emoji"); // "emoji" | "draw"
+  const [iconMode, setIconMode] = useState("emoji"); //"emoji" | "draw"
 
   // sprite canvas
   const canvasRef = useRef(null); // was: document.getElementById('spriteCanvas')
@@ -46,9 +46,10 @@ export default function Landing() {
 
   /** if we are not drawing it shows us what we have drawn
    * (so it doesnt erase right when u let go of the mouse) */
-  /** lineCap controls how the ends of a line look — 'round' gives them rounded tips
+
+  /** lineCap controls how the ends of a line look 'round' gives them rounded tips
    *  instead of flat or square edges.
-   *  lineJoin controls how two lines connect at a corner — 'round' makes the corner
+   *  lineJoin controls how two lines connect at a corner 'round' makes the corner
    *  smooth instead of sharp or clipped.
    *  Together they make the brush strokes look smoother when you're drawing. */
   function onMouseMove(event) {
@@ -79,7 +80,7 @@ export default function Landing() {
     drawingContext.clearRect(0, 0, canvas.width, canvas.height);
   }
 
-  // ── lobby actions
+  // lobby actions
   async function handleSubmit(action) {
     setError(null);
     if (!username.trim()) {
@@ -121,7 +122,7 @@ export default function Landing() {
         )}
 
         <div className={styles.userSetup}>
-          {/* ── Username ── */}
+          {/* Username */}
           <input
             className={styles.usernameBox}
             type="text"
@@ -133,7 +134,7 @@ export default function Landing() {
             autoComplete="off"
           />
 
-          {/* ── Choose icon or draw sprite ── */}
+          {/* Choose icon or draw sprite */}
           <h4>choose an icon or sprite</h4>
 
           {/* Tab toggle */}
@@ -200,7 +201,7 @@ export default function Landing() {
           )}
         </div>
 
-        {/* ── Lobby actions ── */}
+        {/* Lobby actions*/}
         <div className={styles.lobbyActions}>
           <button
             className={styles.createBtn}
