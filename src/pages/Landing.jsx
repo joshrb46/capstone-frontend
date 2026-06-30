@@ -109,7 +109,7 @@ export default function Landing() {
   return (
     <div className={styles.landingPage}>
       <div className={styles.landingColors}>
-        <h1 className={styles.landingTitle}>CAPSTONE PROJECT NAME</h1>
+        <h1 className={styles.landingTitle}>CAPSTONE PROJECT</h1>
 
         <div className={styles.descriptionBox}>
           <h3>description of game and directives on landing page</h3>
@@ -135,7 +135,7 @@ export default function Landing() {
           />
 
           {/* Choose icon or draw sprite */}
-          <h4>choose an icon or sprite</h4>
+          <h4 className={styles.iconChoiceText}>choose an icon or sprite</h4>
 
           {/* Tab toggle */}
           <div className={styles.tabRow}>
