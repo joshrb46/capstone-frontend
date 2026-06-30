@@ -1,0 +1,192 @@
+
+
+.descriptionBox{
+    color: white;
+    border: solid ;
+    border-radius: 30px;
+    background-color: #db84e5;
+    padding: 10px;
+    margin-bottom: 35px;
+    box-shadow: 0 0 25px #ea3590;
+}
+/* colors and borders are just for rough draft*/
+
+.userSetup{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 500px;
+    padding: 20px;
+    position: relative;
+}
+
+.customSprite{
+    background-color: #f7865d;
+}
+
+.usernameBox{
+    border: solid #db84e5;
+    width: 300px;
+    box-shadow: 0 0 25px #ea3590;
+}
+
+.iconChoiceText{
+    justify-self: flex-start;
+    color: white;
+    font-size: 30px;
+    text-shadow: 0 0 25px #ea3590;
+}
+
+.landingTitle{
+    border: solid #ffffff;
+    border-radius: 30px;
+    background-color: #db84e5;
+    width: 500px;
+    height: 100px;
+    text-align: center;
+    line-height: 100px;
+    color: white;
+    box-shadow: 0 0 25px #ea3590;
+}
+
+.landingPage{
+    min-height: 100vh;
+
+}
+
+.landingColors{
+    background-color: #f7865d;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+}
+
+.spriteCanvas {
+    background-color: white;
+    border: 2px solid #db84e5;
+    cursor: crosshair;
+    display: block;
+}
+
+
+
+.tabRow {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.tab{
+  border: solid #db84e5;
+  width: 100px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 50px;
+  border-radius: 30px;
+  background-color: #db84e5;
+  color: white;
+}
+
+.tab:hover{
+    background-color: #d964e6;
+    box-shadow: 0 0 25px #ea3590;
+}
+
+.premadeIcons{
+    width: 100px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+}
+
+.customSpriteText{
+    color: white;
+    border: solid #db84e5;
+    border-radius: 30px;
+    padding: 10px;
+    background-color: #db84e5;
+}
+
+.clearBtn{
+    border: 2px solid #db84e5;
+    background-color: #db84e5;
+    color: white;
+    border-radius: 30px;
+    margin-left: 7px;
+}
+
+.clearBtn:hover{
+box-shadow: 0 0 20px #ea3590;
+}
+
+.createBtn{
+   border: 2px solid #db84e5;
+    background-color: #db84e5;
+    color: white;
+    border-radius: 30px;
+    padding: 8px 18px;
+}
+
+.createBtn:hover {
+    box-shadow: 0 0 20px #ea3590;
+}
+
+.lobbyActions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 16px;
+}
+
+.lobbyActionSide {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+}
+
+.orDivider {
+    color: white;
+    font-weight: bold;
+    font-size: 18px;
+    text-shadow: 0 0 10px #ea3590;
+    flex-shrink: 0;
+}
+
+.joinRow {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+.roomCodeInput {
+    border: solid #db84e5;
+    width: 130px;
+    box-shadow: 0 0 25px #ea3590;
+}
+
+.joinBtn {
+    border: 2px solid #db84e5;
+    background-color: #db84e5;
+    color: white;
+    border-radius: 30px;
+    padding: 8px 18px;
+}
+
+.joinBtn:hover {
+    box-shadow: 0 0 20px #ea3590;
+}
+
+.error {
+    color: white;
+}

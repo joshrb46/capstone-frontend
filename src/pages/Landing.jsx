@@ -107,6 +107,7 @@ export default function Landing() {
   }
 
   return (
+
     <div className={styles.landingPage}>
       <div className={styles.landingColors}>
         <h1 className={styles.landingTitle}>CAPSTONE PROJECT NAME</h1>
@@ -135,11 +136,11 @@ export default function Landing() {
           />
 
           {/* Choose icon or draw sprite */}
-          <h4>choose an icon or sprite</h4>
+          <h4 className={styles.iconChoiceText}>choose an icon or sprite</h4>
 
           {/* Tab toggle */}
           <div className={styles.tabRow}>
-            <button
+            <button 
               className={`${styles.tab} ${iconMode === "emoji" ? styles.tabActive : ""}`}
               onClick={() => setIconMode("emoji")}
               type="button"
@@ -174,13 +175,13 @@ export default function Landing() {
           {/* Custom sprite canvas */}
           {iconMode === "draw" && (
             <div className={styles.customSprite}>
-              <h4>Create Your Own Sprite</h4>
+              <h4 className={styles.customSpriteText}>Create Your Own Sprite</h4>
               <canvas
                 ref={canvasRef}
                 id="spriteCanvas"
                 className={styles.spriteCanvas}
-                width={300}
-                height={300}
+                width={100}
+                height={100}
                 onMouseDown={onMouseDown}
                 onMouseMove={onMouseMove}
                 onMouseUp={onMouseUp}
@@ -193,7 +194,7 @@ export default function Landing() {
                   value={color}
                   onChange={(e) => setColor(e.target.value)}
                 />
-                <button id="clearCanvas" onClick={clearCanvas} type="button">
+                <button className={styles.clearBtn} id="clearCanvas" onClick={clearCanvas} type="button">
                   Clear
                 </button>
               </div>
@@ -203,39 +204,43 @@ export default function Landing() {
 
         {/* Lobby actions*/}
         <div className={styles.lobbyActions}>
-          <button
-            className={styles.createBtn}
-            onClick={() => handleSubmit("create")}
-            disabled={loading}
-            type="button"
-          >
-            {loading ? "Setting up…" : "Create a lobby"}
-          </button>
+          <div className={styles.lobbyActionSide}>
+            <button
+              className={styles.createBtn}
+              onClick={() => handleSubmit("create")}
+              disabled={loading}
+              type="button"
+            >
+              {loading ? "Setting up…" : "Create a lobby"}
+            </button>
+          </div>
 
           <div className={styles.orDivider}>
             <span>or</span>
           </div>
 
-          <div className={styles.joinRow}>
-            <input
-              className={styles.usernameBox}
-              type="text"
-              placeholder="Enter room code"
-              maxLength={6}
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              onKeyDown={(e) => e.key === "Enter" && handleSubmit("join")}
-              style={{ letterSpacing: "4px", textTransform: "uppercase" }}
-              aria-label="Room code"
-            />
-            <button
-              className={styles.joinBtn}
-              onClick={() => handleSubmit("join")}
-              disabled={loading}
-              type="button"
-            >
-              Join
-            </button>
+          <div className={styles.lobbyActionSide}>
+            <div className={styles.joinRow}>
+              <input
+                className={styles.roomCodeInput}
+                type="text"
+                placeholder="Enter room code"
+                maxLength={6}
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                onKeyDown={(e) => e.key === "Enter" && handleSubmit("join")}
+                style={{ letterSpacing: "4px", textTransform: "uppercase" }}
+                aria-label="Room code"
+              />
+              <button
+                className={styles.joinBtn}
+                onClick={() => handleSubmit("join")}
+                disabled={loading}
+                type="button"
+              >
+                Join
+              </button>
+            </div>
           </div>
         </div>
       </div>
