@@ -1,367 +1,216 @@
-import { useEffect, useRef, useState, useCallback } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext";
-import DrawCanvas from "../components/DrawCanvas";
-import WordPicker from "../components/WordPicker";
-import RoundWinner from "../components/RoundWinner";
+import { useRef, useState, useEffect, useCallback } from "react";
+import { useParams } from "react-router-dom";
 import styles from "./Game.module.css";
-
-const BRUSH_COLORS = [
-  "#1a1a2e",
-  "#ff6b6b",
-  "#4ecdc4",
-  "#ffe66d",
-  "#a29bfe",
-  "#ff9f43",
-  "#ffffff",
-  "#74b9ff",
-];
-const MAX_SCORE = 4;
-const ROUND_DURATION = 80;
-
-// Demo data — remove when WebSocket is wired up
-const DEMO_PLAYERS = [
-  { userID: "1", username: "You", icon: "🐱", score: 2 },
-  { userID: "2", username: "DoodleMaster", icon: "🦁", score: 3 },
-  { userID: "3", username: "SketchQueen", icon: "🐙", score: 1 },
-  { userID: "4", username: "BrushHero", icon: "🐸", score: 0 },
-];
 
 export default function Game() {
   const { code } = useParams();
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const canvasRef = useRef(null);
-  const wsRef = useRef(null);
-  const timerRef = useRef(null);
 
-  // ── Game state ──────────────────────────────────────────
-  const [phase, setPhase] = useState("word_pick"); // word_pick | drawing | round_end | game_over
-  const [isDrawer, setIsDrawer] = useState(true);
-  const [word, setWord] = useState("");
-  const [wordChoices, setWordChoices] = useState([]);
-  const [timeLeft, setTimeLeft] = useState(ROUND_DURATION);
-  const [round, setRound] = useState(1);
-  const [players, setPlayers] = useState(DEMO_PLAYERS);
+  const canvasRef = useRef(null); // was: document.getElementById('drawCanvas')
+  const colorRef = useRef(null); // was: document.getElementById('colorInput')
+  const drawing = useRef(false); // was: let drawing = false
+  const historyRef = useRef([]); // was: let history = []
+
+  const [currentColor, setCurrentColor] = useState("#000000"); // was: let currentColor
   const [messages, setMessages] = useState([]);
-  const [brushColor, setBrushColor] = useState(BRUSH_COLORS[0]);
-  const [brushSize, setBrushSize] = useState(6);
   const [guess, setGuess] = useState("");
-  const [roundWinner, setRoundWinner] = useState(null); // { username, icon, word }
-  const [undoStack, setUndoStack] = useState([]); // array of ImageData snapshots
+  const [players, setPlayers] = useState([
+    { id: 1, icon: "🐱", active: true },
+    { id: 2, icon: "🐶", active: false },
+    { id: 3, icon: "🦊", active: false },
+    { id: 4, icon: "🐸", active: false },
+  ]);
 
-  // ── Connect & bootstrap ─────────────────────────────────
-  useEffect(() => {
-    if (!user || !code) return;
-
-    // TODO: wire up real WebSocket
-    // const ws = new WebSocket(`ws://localhost:4000/room/${code}?userID=${user.userID}`);
-    // wsRef.current = ws;
-    // ws.onmessage = (e) => handleServerMsg(JSON.parse(e.data));
-    // return () => ws.close();
-
-    // ── DEMO: simulate server kicking off first round ──
-    fetchWordChoices();
-  }, [user, code]);
-
-  // ── Fetch 3 random words from API ───────────────────────
-  async function fetchWordChoices() {
-    setPhase("word_pick");
-    try {
-      // const res = await fetch(`/api/words/random?count=3`);
-      // const data = await res.json();  // { words: ["elephant","bicycle","castle"] }
-      // setWordChoices(data.words);
-
-      // DEMO fallback
-      const banks = [
-        "elephant",
-        "bicycle",
-        "castle",
-        "umbrella",
-        "volcano",
-        "flamingo",
-        "telescope",
-        "avalanche",
-        "compass",
-        "tornado",
-      ];
-      const shuffled = banks.sort(() => Math.random() - 0.5).slice(0, 3);
-      setWordChoices(shuffled);
-    } catch {
-      setWordChoices(["elephant", "bicycle", "castle"]);
-    }
-  }
-
-  // ── Handle incoming WebSocket messages ──────────────────
-  function handleServerMsg(msg) {
-    switch (msg.type) {
-      case "round_start":
-        setRound(msg.round);
-        setIsDrawer(msg.drawerID === user.userID);
-        if (msg.drawerID === user.userID) {
-          setWordChoices(msg.wordChoices);
-          setPhase("word_pick");
-        } else {
-          setPhase("drawing");
-          setWord("");
-          startTimer(msg.duration);
-        }
-        canvasRef.current?.clearBoard();
-        break;
-      case "round_timer":
-        setTimeLeft(msg.remaining);
-        break;
-      case "chat":
-        addMessage({ type: "guess", name: msg.username, text: msg.text });
-        break;
-      case "correct_guess":
-        addMessage({ type: "correct", name: msg.username, text: msg.guess });
-        setPlayers(msg.players);
-        break;
-      case "round_end":
-        clearTimer();
-        setRoundWinner(msg.winner); // null if timer ran out with no winner
-        setWord(msg.word);
-        setPhase("round_end");
-        setPlayers(msg.players);
-        break;
-      case "game_over":
-        setPlayers(msg.players);
-        setPhase("game_over");
-        setTimeout(
-          () =>
-            navigate(`/results/${code}`, { state: { players: msg.players } }),
-          500,
-        );
-        break;
-      case "draw":
-        canvasRef.current?.drawStroke(msg);
-        break;
-      case "clear":
-        canvasRef.current?.clearBoard();
-        break;
-    }
-  }
-
-  // ── Word chosen by drawer ────────────────────────────────
-  function onWordChosen(chosenWord) {
-    setWord(chosenWord);
-    setPhase("drawing");
-    setMessages([
-      { type: "system", text: "🎨 Round started! You're drawing." },
-    ]);
-    startTimer(ROUND_DURATION);
-    // wsRef.current?.send(JSON.stringify({ type: "word_chosen", word: chosenWord }));
-  }
-
-  // ── Timer ────────────────────────────────────────────────
-  function startTimer(duration) {
-    clearTimer();
-    setTimeLeft(duration);
-    timerRef.current = setInterval(() => {
-      setTimeLeft((t) => {
-        if (t <= 1) {
-          clearTimer();
-          // In demo mode simulate round end when timer hits 0
-          handleTimerEnd();
-          return 0;
-        }
-        return t - 1;
-      });
-    }, 1000);
-  }
-
-  function clearTimer() {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-  }
-
-  function handleTimerEnd() {
-    // Server will send round_end in production — this is demo only
-    setPhase("round_end");
-    setRoundWinner(null);
-  }
-
-  useEffect(() => () => clearTimer(), []);
-
-  // ── Drawing ──────────────────────────────────────────────
-  function handleDraw(drawData) {
-    // wsRef.current?.send(JSON.stringify({ type: "draw", ...drawData }));
-  }
-
-  function handleBeforeStroke() {
-    // Save canvas snapshot for undo
-    const canvas = canvasRef.current?._canvas;
+  // Resize canvas to fill its container
+  // was: function resizeCanvas()
+  const resizeCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
-    setUndoStack((prev) => [
-      ...prev.slice(-19),
-      ctx.getImageData(0, 0, canvas.width, canvas.height),
-    ]);
-  }
+    const imageData =
+      canvas.width > 0
+        ? ctx.getImageData(0, 0, canvas.width, canvas.height)
+        : null;
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = 4;
+    if (imageData) ctx.putImageData(imageData, 0, 0);
+  }, []);
 
-  function handleUndo() {
-    const canvas = canvasRef.current?._canvas;
-    if (!canvas || undoStack.length === 0) return;
+  // Watch canvas size and resize whenever it changes
+  // was: new ResizeObserver(resizeCanvas).observe(canvas)
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const observer = new ResizeObserver(resizeCanvas);
+    observer.observe(canvas);
+    resizeCanvas();
+    return () => observer.disconnect();
+  }, [resizeCanvas]);
+
+  // Save canvas state for undo
+  // was: function saveState()
+  function saveState() {
+    const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
-    const last = undoStack[undoStack.length - 1];
-    ctx.putImageData(last, 0, 0);
-    setUndoStack((prev) => prev.slice(0, -1));
-    // wsRef.current?.send(JSON.stringify({ type: "undo", imageData: "..." }));
+    historyRef.current.push(
+      ctx.getImageData(0, 0, canvas.width, canvas.height),
+    );
+    if (historyRef.current.length > 50) historyRef.current.shift();
   }
 
-  // ── Chat / Guesses ───────────────────────────────────────
-  function addMessage(msg) {
-    setMessages((prev) => [...prev, msg]);
+  // Get cursor position relative to canvas
+  // was: function getPos(e)
+  function getPos(e) {
+    const rect = canvasRef.current.getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    return { x: src.clientX - rect.left, y: src.clientY - rect.top };
   }
 
+  // Start drawing
+  // was: canvas.addEventListener('mousedown', startDraw)
+  function startDraw(e) {
+    e.preventDefault();
+    saveState();
+    drawing.current = true;
+    const { x, y } = getPos(e);
+    const ctx = canvasRef.current.getContext("2d");
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.strokeStyle = currentColor;
+  }
+
+  // Draw stroke
+  // was: canvas.addEventListener('mousemove', draw)
+  function draw(e) {
+    if (!drawing.current) return;
+    e.preventDefault();
+    const { x, y } = getPos(e);
+    const ctx = canvasRef.current.getContext("2d");
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  }
+
+  // Stop drawing
+  // was: canvas.addEventListener('mouseup', stopDraw)
+  function stopDraw() {
+    drawing.current = false;
+    canvasRef.current?.getContext("2d").beginPath();
+  }
+
+  // Undo
+  // was: undoBtn.addEventListener('click', ...)
+  function handleUndo() {
+    if (historyRef.current.length === 0) return;
+    const ctx = canvasRef.current.getContext("2d");
+    ctx.putImageData(historyRef.current.pop(), 0, 0);
+  }
+
+  // Clear canvas
+  // was: clearBtn.addEventListener('click', ...)
+  function handleClear() {
+    const canvas = canvasRef.current;
+    saveState();
+    canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  // Color picker
+  // was: colorPickerBtn.addEventListener('click', () => colorInput.click())
+  function openColorPicker() {
+    colorRef.current?.click();
+  }
+
+  function onColorChange(e) {
+    setCurrentColor(e.target.value);
+  }
+
+  // Send chat guess
   function sendGuess() {
     const text = guess.trim();
-    if (!text || isDrawer) return;
-    addMessage({ type: "guess", name: user?.username ?? "You", text });
-    // wsRef.current?.send(JSON.stringify({ type: "guess", text }));
+    if (!text) return;
+    setMessages((prev) => [...prev, { type: "guess", name: "You", text }]);
     setGuess("");
-  }
-
-  // ── Next round (after round_end screen) ─────────────────
-  function nextRound() {
-    const newRound = round + 1;
-    setRound(newRound);
-    setRoundWinner(null);
-    setMessages([]);
-    canvasRef.current?.clearBoard();
-
-    // Check if any player hit max score
-    const winner = players.find((p) => p.score >= MAX_SCORE);
-    if (winner) {
-      navigate(`/results/${code}`, { state: { players } });
-      return;
-    }
-    // wsRef.current?.send(JSON.stringify({ type: "next_round" }));
-    // DEMO: rotate drawer and fetch new words
-    fetchWordChoices();
-  }
-
-  // ── Render ───────────────────────────────────────────────
-
-  // Word picker overlay (drawer only)
-  if (phase === "word_pick" && isDrawer) {
-    return (
-      <WordPicker words={wordChoices} round={round} onChoose={onWordChosen} />
-    );
-  }
-
-  // Round winner overlay
-  if (phase === "round_end") {
-    return (
-      <RoundWinner
-        winner={roundWinner}
-        word={word}
-        round={round}
-        players={players}
-        onNext={nextRound}
-        isHost={true} // TODO: check from server
-      />
-    );
   }
 
   return (
     <div className={styles.gamePage}>
       <div className={styles.mainLayout}>
-        {/* ── LEFT PANEL ── */}
+        {/* LEFT PANEL*/}
         <div className={styles.leftPanel}>
           <div className={styles.drawingCanvas}>
             <div className={styles.canvasHeader}>
               <span>drawing canvass</span>
-              <span className={styles.roundTimerPill}>
-                Round {round} · {timeLeft}s
-              </span>
+              <span className={styles.roundTimerPill}>Room: {code}</span>
             </div>
             <div className={styles.canvasBody}>
-              {isDrawer && (
-                <div className={styles.canvasTools}>
-                  <button className={styles.undoBtn} onClick={handleUndo}>
-                    undo
-                  </button>
-                  <div className={styles.colorPickerBtn}>
-                    {BRUSH_COLORS.map((c) => (
-                      <button
-                        key={c}
-                        className={`${styles.colorDot} ${c === brushColor ? styles.colorDotSelected : ""}`}
-                        style={{ background: c }}
-                        onClick={() => setBrushColor(c)}
-                        aria-label={`color ${c}`}
-                      />
-                    ))}
-                  </div>
-                  <div className={styles.sizeBtns}>
-                    {[4, 10, 20].map((s, i) => (
-                      <button
-                        key={s}
-                        className={`${styles.sizeBtn} ${brushSize === s ? styles.sizeBtnActive : ""}`}
-                        onClick={() => setBrushSize(s)}
-                      >
-                        {["S", "M", "L"][i]}
-                      </button>
-                    ))}
-                  </div>
+              <div className={styles.canvasTools}>
+                {/* Undo was: undoBtn */}
+                <button className={styles.undoBtn} onClick={handleUndo}>
+                  undo
+                </button>
+
+                {/* Clear was: clearBtn */}
+                <button className={styles.clearBtn} onClick={handleClear}>
+                  clear
+                </button>
+
+                {/* Color picker circle was: colorPickerBtn + colorInput */}
+                <div
+                  className={styles.colorPickerBtn}
+                  style={{ background: currentColor }}
+                  onClick={openColorPicker}
+                >
+                  color
+                  <br />
+                  picker
                 </div>
-              )}
-              <div className={styles.canvasDrawArea}>
-                <DrawCanvas
-                  ref={canvasRef}
-                  readOnly={!isDrawer}
-                  brushColor={brushColor}
-                  brushSize={brushSize}
-                  onDraw={handleDraw}
-                  onBeforeStroke={handleBeforeStroke}
+                {/* Hidden color input was: <input type="color" id="colorInput" /> */}
+                <input
+                  ref={colorRef}
+                  type="color"
+                  value={currentColor}
+                  onChange={onColorChange}
+                  style={{ display: "none" }}
                 />
               </div>
+
+              {/* Canvas draw area was: <canvas id="drawCanvas"> */}
+              <canvas
+                ref={canvasRef}
+                className={styles.canvasDrawArea}
+                onMouseDown={startDraw}
+                onMouseMove={draw}
+                onMouseUp={stopDraw}
+                onMouseLeave={stopDraw}
+                onTouchStart={startDraw}
+                onTouchMove={draw}
+                onTouchEnd={stopDraw}
+              />
             </div>
           </div>
 
           <div className={styles.bottomRow}>
-            <div className={styles.score}>
-              <span>score</span>
-              <span className={styles.scoreNum}>
-                {players.find((p) => p.userID === user?.userID)?.score ?? 0}
-              </span>
-            </div>
+            <div className={styles.score}>score</div>
             <div className={styles.promptBox}>
-              {isDrawer ? (
-                <>
-                  draw this word:
-                  <br />
-                  <strong>{word}</strong>
-                </>
-              ) : (
-                <>
-                  prompt for drawing,
-                  <br />
-                  left empty if guessing
-                </>
-              )}
+              prompt for drawing,
+              <br />
+              left empty if guessing
             </div>
           </div>
         </div>
 
-        {/* ── RIGHT PANEL ── */}
+        {/* RIGHT PANEL */}
         <div className={styles.rightPanel}>
           <div className={styles.playersSection}>
-            {[...players]
-              .sort((a, b) => b.score - a.score)
-              .map((p) => (
-                <div
-                  key={p.userID}
-                  className={`${styles.player} ${p.userID === user?.userID && isDrawer ? styles.playerActive : ""}`}
-                  title={p.username}
-                >
-                  {p.icon}
-                  <span className={styles.playerScoreBadge}>{p.score}</span>
-                </div>
-              ))}
+            {players.map((p) => (
+              <div
+                key={p.id}
+                className={`${styles.player} ${p.active ? styles.playerActive : ""}`}
+              >
+                {p.icon}
+              </div>
+            ))}
           </div>
 
           <div className={styles.chatBox}>
@@ -393,13 +242,8 @@ export default function Game() {
                 value={guess}
                 onChange={(e) => setGuess(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && sendGuess()}
-                disabled={isDrawer}
               />
-              <button
-                className={styles.chatSendBtn}
-                onClick={sendGuess}
-                disabled={isDrawer}
-              >
+              <button className={styles.chatSendBtn} onClick={sendGuess}>
                 send
               </button>
             </div>
