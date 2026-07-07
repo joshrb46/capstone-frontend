@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { api } from "../lib/api";
-import { getSocket } from "../lib/socket";
+import { getSocket, identifySocket } from "../lib/socket";
 import styles from "./Podium.module.css";
 
 const RANK_BLOCK_CLASS = {
@@ -44,15 +44,23 @@ export default function Podium() {
 
   useEffect(() => {
     if (!sessionToken) return;
-    const socket = getSocket(sessionToken);
-    socket.emit("match:join", { matchId });
-    socket.emit("lobby:join", { code });
+    let cancelled = false;
+    const socket = getSocket();
 
     const onMatchStarted = ({ matchId: newMatchId }) =>
       navigate(`/game/${code}/${newMatchId}`);
     socket.on("lobby:match_started", onMatchStarted);
 
+    identifySocket(sessionToken)
+      .then(() => {
+        if (cancelled) return;
+        socket.emit("match:join", { matchId });
+        socket.emit("lobby:join", { code });
+      })
+      .catch((e) => setError(e.message));
+
     return () => {
+      cancelled = true;
       socket.emit("match:leave", { matchId });
       socket.off("lobby:match_started", onMatchStarted);
     };

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { api } from "../lib/api";
-import { getSocket } from "../lib/socket";
+import { getSocket, identifySocket } from "../lib/socket";
 import styles from "./Lobby.module.css";
 
 export default function Lobby() {
@@ -40,9 +40,8 @@ export default function Lobby() {
 
   useEffect(() => {
     if (!sessionToken) return;
-    const socket = getSocket(sessionToken);
-
-    socket.emit("lobby:join", { code });
+    let cancelled = false;
+    const socket = getSocket();
 
     const onPlayers = (playerList) => setPlayers(playerList);
     const onMatchStarted = ({ matchId }) =>
@@ -53,7 +52,17 @@ export default function Lobby() {
     socket.on("lobby:match_started", onMatchStarted);
     socket.on("error:lobby_join", onError);
 
+    // Wait for the "identify" handshake to actually finish (it's async on
+    // the server) before emitting lobby:join, otherwise the server can
+    // reject it with "Call 'identify' first."
+    identifySocket(sessionToken)
+      .then(() => {
+        if (!cancelled) socket.emit("lobby:join", { code });
+      })
+      .catch((e) => setError(e.message));
+
     return () => {
+      cancelled = true;
       socket.off("lobby:players", onPlayers);
       socket.off("lobby:match_started", onMatchStarted);
       socket.off("error:lobby_join", onError);

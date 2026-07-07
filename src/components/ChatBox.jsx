@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../auth/AuthContext";
-import { getSocket } from "../lib/socket";
+import { getSocket, identifySocket } from "../lib/socket";
 import styles from "./Chatbox.module.css";
 
 export default function ChatBox({ matchId, roundId }) {
@@ -15,14 +15,18 @@ export default function ChatBox({ matchId, roundId }) {
 
   useEffect(() => {
     if (!sessionToken || !matchId) return;
+    let cancelled = false;
 
-    const socket = getSocket(sessionToken);
-    socket.emit("match:join", { matchId });
-
+    const socket = getSocket();
     const onMessage = (msg) => setMessages((prev) => [...prev, msg]);
     socket.on("chat:message", onMessage);
 
+    identifySocket(sessionToken).then(() => {
+      if (!cancelled) socket.emit("match:join", { matchId });
+    });
+
     return () => {
+      cancelled = true;
       socket.emit("match:leave", { matchId });
       socket.off("chat:message", onMessage);
     };
@@ -32,7 +36,9 @@ export default function ChatBox({ matchId, roundId }) {
     const trimmed = input.trim();
     if (!trimmed || !roundId || !sessionToken) return;
 
-    getSocket(sessionToken).emit("chat:send", { roundId, message: trimmed });
+    identifySocket(sessionToken).then((socket) => {
+      socket.emit("chat:send", { roundId, message: trimmed });
+    });
     setInput("");
   };
 

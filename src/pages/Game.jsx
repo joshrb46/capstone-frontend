@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { api } from "../lib/api";
-import { getSocket } from "../lib/socket";
+import { getSocket, identifySocket } from "../lib/socket";
 import DrawCanvas from "../components/DrawCanvas";
 import ChatBox from "../components/ChatBox";
 import styles from "./Game.module.css";
@@ -53,8 +53,8 @@ export default function Game() {
   // Socket wiring: join the match room and react to round/match lifecycle events.
   useEffect(() => {
     if (!sessionToken) return;
-    const socket = getSocket(sessionToken);
-    socket.emit("match:join", { matchId });
+    let cancelled = false;
+    const socket = getSocket();
 
     const onRoundCreated = (round) => {
       setRounds((prev) => [...prev, round]);
@@ -91,7 +91,14 @@ export default function Game() {
     socket.on("round:correct_guess", onCorrectGuess);
     socket.on("match:ended", onMatchEnded);
 
+    identifySocket(sessionToken)
+      .then(() => {
+        if (!cancelled) socket.emit("match:join", { matchId });
+      })
+      .catch((e) => setError(e.message));
+
     return () => {
+      cancelled = true;
       socket.emit("match:leave", { matchId });
       socket.off("round:created", onRoundCreated);
       socket.off("round:word_chosen", onWordChosen);

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getSocket } from "../lib/socket";
+import { getSocket, identifySocket } from "../lib/socket";
 import styles from "./DrawCanvas.module.css";
 
 /**
@@ -44,7 +44,7 @@ export default function DrawCanvas({ matchId, sessionToken, isDrawer }) {
   // Listen for remote strokes from whoever is drawing.
   useEffect(() => {
     if (!sessionToken) return;
-    const socket = getSocket(sessionToken);
+    const socket = getSocket();
 
     function strokeToCanvas({ type, x, y, color }) {
       const canvas = canvasRef.current;
@@ -92,7 +92,7 @@ export default function DrawCanvas({ matchId, sessionToken, isDrawer }) {
 
   function emitStroke(type, point) {
     if (!sessionToken) return;
-    getSocket(sessionToken).emit("draw:stroke", {
+    getSocket().emit("draw:stroke", {
       matchId,
       type,
       x: point?.x,
@@ -144,7 +144,7 @@ export default function DrawCanvas({ matchId, sessionToken, isDrawer }) {
     const canvas = canvasRef.current;
     saveState();
     canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
-    if (sessionToken) getSocket(sessionToken).emit("draw:clear", { matchId });
+    if (sessionToken) getSocket().emit("draw:clear", { matchId });
   }
 
   function openColorPicker() {
