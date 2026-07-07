@@ -1,51 +1,38 @@
 import { useState, useRef, useEffect } from "react";
-import { io } from "socket.io-client";
-import { jwtDecode } from "jwt-decode";
 import { useAuth } from "../auth/AuthContext";
+import { getSocket } from "../lib/socket";
 import styles from "./Chatbox.module.css";
 
-const API = import.meta.env.VITE_API;
-
 export default function ChatBox({ matchId, roundId }) {
-  const { token } = useAuth();
+  const { user, sessionToken } = useAuth();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
-  const socketRef = useRef(null);
   const bottomRef = useRef(null);
-  const currentUserId = useRef(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   useEffect(() => {
-    if (!token || !matchId) return;
+    if (!sessionToken || !matchId) return;
 
-    const decoded = jwtDecode(token);
-    const userId = decoded.id ?? decoded.userId ?? decoded.sub;
-    currentUserId.current = userId;
-
-    const socket = io(API);
-    socketRef.current = socket;
-
-    socket.emit("identify", { userId });
+    const socket = getSocket(sessionToken);
     socket.emit("match:join", { matchId });
 
-    socket.on("chat:message", (msg) => {
-      setMessages((prev) => [...prev, msg]);
-    });
+    const onMessage = (msg) => setMessages((prev) => [...prev, msg]);
+    socket.on("chat:message", onMessage);
 
     return () => {
       socket.emit("match:leave", { matchId });
-      socket.disconnect();
+      socket.off("chat:message", onMessage);
     };
-  }, [token, matchId]);
+  }, [sessionToken, matchId]);
 
   const sendMessage = () => {
     const trimmed = input.trim();
-    if (!trimmed || !roundId) return;
+    if (!trimmed || !roundId || !sessionToken) return;
 
-    socketRef.current?.emit("chat:send", { roundId, message: trimmed });
+    getSocket(sessionToken).emit("chat:send", { roundId, message: trimmed });
     setInput("");
   };
 
@@ -69,7 +56,7 @@ export default function ChatBox({ matchId, roundId }) {
         aria-label="Game chat"
       >
         {messages.map((msg) => {
-          const isOwn = msg.user_id === currentUserId.current;
+          const isOwn = msg.user_id === user?.id;
           return (
             <div
               key={msg.id}
