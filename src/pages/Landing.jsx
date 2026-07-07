@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { api } from "../lib/api";
 import styles from "./Landing.module.css";
 
 const AVATARS = ["🐱", "🐶", "🦊", "🐸", "🐼", "🦁", "🐙", "🦋"];
@@ -93,11 +94,23 @@ export default function Landing() {
     }
     setLoading(true);
     try {
-      await register({ username: username.trim(), icon: selectedEmoji, color });
+      const avatarType = iconMode === "draw" ? "custom" : "preset";
+      const avatarValue =
+        iconMode === "draw" ? canvasRef.current.toDataURL() : selectedEmoji;
+
+      const newUser = await register({
+        username: username.trim(),
+        avatarType,
+        avatarValue,
+      });
+
       if (action === "create") {
-        navigate("/lobby/create");
+        const lobby = await api.post("/lobby", {}, newUser.session_token);
+        navigate(`/lobby/${lobby.code}`);
       } else {
-        navigate(`/lobby/join/${joinCode.trim().toUpperCase()}`);
+        const code = joinCode.trim().toUpperCase();
+        await api.post(`/lobby/${code}/players`, {}, newUser.session_token);
+        navigate(`/lobby/${code}`);
       }
     } catch (e) {
       setError(e.message);
@@ -107,7 +120,6 @@ export default function Landing() {
   }
 
   return (
-
     <div className={styles.landingPage}>
       <div className={styles.landingColors}>
         <h1 className={styles.landingTitle}>CAPSTONE PROJECT</h1>
@@ -140,7 +152,7 @@ export default function Landing() {
 
           {/* Tab toggle */}
           <div className={styles.tabRow}>
-            <button 
+            <button
               className={`${styles.tab} ${iconMode === "emoji" ? styles.tabActive : ""}`}
               onClick={() => setIconMode("emoji")}
               type="button"
@@ -175,7 +187,9 @@ export default function Landing() {
           {/* Custom sprite canvas */}
           {iconMode === "draw" && (
             <div className={styles.customSprite}>
-              <h4 className={styles.customSpriteText}>Create Your Own Sprite</h4>
+              <h4 className={styles.customSpriteText}>
+                Create Your Own Sprite
+              </h4>
               <canvas
                 ref={canvasRef}
                 id="spriteCanvas"
@@ -194,7 +208,12 @@ export default function Landing() {
                   value={color}
                   onChange={(e) => setColor(e.target.value)}
                 />
-                <button className={styles.clearBtn} id="clearCanvas" onClick={clearCanvas} type="button">
+                <button
+                  className={styles.clearBtn}
+                  id="clearCanvas"
+                  onClick={clearCanvas}
+                  type="button"
+                >
                   Clear
                 </button>
               </div>
