@@ -1,44 +1,58 @@
-import { createContext, useContext, useEffect, useState } from "react";
-
-const API = import.meta.env.VITE_API;
+import { createContext, useContext, useState } from "react";
+import { api } from "../lib/api";
+import { disconnectSocket } from "../lib/socket";
 
 const AuthContext = createContext();
 
+/**
+ * The backend has no password / JWT auth (see backend README). A "user" is
+ * created once by picking a username + avatar via POST /users, which
+ * returns a session_token that must be sent back as the x-session-token
+ * header on every later request/socket connection. We persist the whole
+ * user object (not just a token) in sessionStorage so a page refresh
+ * doesn't lose who you are mid-lobby/mid-game.
+ */
+function loadStoredUser() {
+  try {
+    const raw = sessionStorage.getItem("user");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(sessionStorage.getItem("token"));
+  const [user, setUser] = useState(loadStoredUser);
 
-  useEffect(() => {
-    if (token) sessionStorage.setItem("token", token);
-  }, [token]);
+  function persist(nextUser) {
+    setUser(nextUser);
+    if (nextUser) sessionStorage.setItem("user", JSON.stringify(nextUser));
+    else sessionStorage.removeItem("user");
+  }
 
-  const register = async (credentials) => {
-    const response = await fetch(API + "/users/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(credentials),
+  /** Creates a new user. avatarType: 'preset' | 'custom'. */
+  const register = async ({ username, avatarType, avatarValue }) => {
+    const newUser = await api.post("/users", {
+      username,
+      avatarType,
+      avatarValue,
     });
-    const result = await response.text();
-    if (!response.ok) throw Error(result);
-    setToken(result);
-  };
-
-  const login = async (credentials) => {
-    const response = await fetch(API + "/users/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(credentials),
-    });
-    const result = await response.text();
-    if (!response.ok) throw Error(result);
-    setToken(result);
+    persist(newUser);
+    return newUser;
   };
 
   const logout = () => {
-    setToken(null);
-    sessionStorage.removeItem("token");
+    disconnectSocket();
+    persist(null);
   };
 
-  const value = { token, register, login, logout };
+  const value = {
+    user,
+    sessionToken: user?.session_token ?? null,
+    register,
+    logout,
+  };
+
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
