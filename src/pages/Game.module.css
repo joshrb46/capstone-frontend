@@ -72,6 +72,21 @@
   background: #d964e6;
 }
 
+.wordChoiceBtn {
+  background: #db84e5;
+  color: #fff;
+  border: 2.5px solid #fff;
+  border-radius: 20px;
+  padding: 16px 28px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.wordChoiceBtn:hover {
+  background: #d964e6;
+}
+
 .clearBtn {
   background: #f7865d;
   color: #fff;
