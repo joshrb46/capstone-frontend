@@ -71,6 +71,10 @@ body {
   border: 2.5px solid #ffffff;
   overflow: hidden;
   transition: opacity 0.2s;
+  display: grid;
+  place-items: center;
+  font-size: 2.5rem;
+  background: #ffffff;
 }
 
 .avatarWrap:hover .avatar {
@@ -112,6 +116,10 @@ body {
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.emoji {
+  line-height: 1;
 }
 
 .playerName {
