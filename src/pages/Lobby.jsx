@@ -100,7 +100,7 @@ export default function Lobby() {
         />
       );
     }
-    return <span className={styles.sprite}>{player.avatar_value}</span>;
+    return <span className={styles.emoji}>{player.avatar_value}</span>;
   }
 
   if (!lobby) {
