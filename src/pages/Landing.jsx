@@ -125,12 +125,7 @@ export default function Landing() {
         <h1 className={styles.landingTitle}>Picture It!</h1>
 
         <div className={styles.descriptionBox}>
-          <h3>
-            A real-time drawing & guessing party game. Sketch it, guess it,
-            laugh at it! Draw your own avatar or choose one of ours, hop in a
-            lobby with friends, and race the clock to guess what everyone's
-            terrible doodles are supposed to be.
-          </h3>
+          <h3>Sketch it, guess it, Picture it!</h3>
         </div>
 
         {error && (
