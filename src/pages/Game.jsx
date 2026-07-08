@@ -250,6 +250,8 @@ export default function Game() {
                   gap: 12,
                   padding: 24,
                   justifyContent: "center",
+                  alignItems: "center",
+                  height: "100%",
                 }}
               >
                 {wordOptions.map((word) => (
@@ -257,7 +259,7 @@ export default function Game() {
                     key={word.id}
                     onClick={() => chooseWord(word)}
                     type="button"
-                    className={styles.undoBtn}
+                    className={styles.wordChoiceBtn}
                   >
                     {word.text}
                   </button>
