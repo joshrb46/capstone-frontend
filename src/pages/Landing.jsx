@@ -122,10 +122,15 @@ export default function Landing() {
   return (
     <div className={styles.landingPage}>
       <div className={styles.landingColors}>
-        <h1 className={styles.landingTitle}>CAPSTONE PROJECT</h1>
+        <h1 className={styles.landingTitle}>Picture It!</h1>
 
         <div className={styles.descriptionBox}>
-          <h3>description of game and directives on landing page</h3>
+          <h3>
+            A real-time drawing & guessing party game. Sketch it, guess it,
+            laugh at it! Draw your own avatar or choose one of ours, hop in a
+            lobby with friends, and race the clock to guess what everyone's
+            terrible doodles are supposed to be.
+          </h3>
         </div>
 
         {error && (
