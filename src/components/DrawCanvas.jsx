@@ -19,13 +19,26 @@ export default function DrawCanvas({ matchId, sessionToken, isDrawer }) {
   const resizeCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const { offsetWidth, offsetHeight } = canvas;
+
+    // Skip resizes to 0x0. This fires transiently when the window is
+    // minimized or mid-transition (e.g. toggling fullscreen), and actually
+    // resizing the <canvas> element to 0x0 wipes its pixel buffer. If we
+    // let that happen, there's nothing left to restore on the *next*
+    // resize event either — the drawing is gone for good.
+    if (offsetWidth === 0 || offsetHeight === 0) return;
+    // No-op if the size hasn't actually changed (avoids pointless wipes).
+    if (canvas.width === offsetWidth && canvas.height === offsetHeight) {
+      return;
+    }
+
     const ctx = canvas.getContext("2d");
     const imageData =
-      canvas.width > 0
+      canvas.width > 0 && canvas.height > 0
         ? ctx.getImageData(0, 0, canvas.width, canvas.height)
         : null;
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
+    canvas.width = offsetWidth;
+    canvas.height = offsetHeight;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.lineWidth = 4;
