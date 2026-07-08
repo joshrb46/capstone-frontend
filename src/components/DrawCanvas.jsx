@@ -7,7 +7,7 @@ import styles from "./DrawCanvas.module.css";
  * broadcast; guessers' canvases are read-only and just render incoming
  * draw:stroke / draw:clear events for this match.
  */
-export default function DrawCanvas({ matchId, sessionToken, isDrawer }) {
+export default function DrawCanvas({ matchId, sessionToken, isDrawer, roundId }) {
   const canvasRef = useRef(null);
   const colorRef = useRef(null);
   const drawing = useRef(false);
@@ -54,21 +54,38 @@ export default function DrawCanvas({ matchId, sessionToken, isDrawer }) {
     return () => observer.disconnect();
   }, [resizeCanvas]);
 
+  // Clear the canvas at the start of every round. Without this, a new
+  // round's drawing gets layered on top of whatever was left over from
+  // the previous round (for every player, not just the new drawer).
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || canvas.width === 0 || canvas.height === 0) return;
+    canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+    historyRef.current = [];
+  }, [roundId]);
+
   // Listen for remote strokes from whoever is drawing.
   useEffect(() => {
     if (!sessionToken) return;
     const socket = getSocket();
 
+    // x/y arrive as fractions (0-1) of the sender's canvas size, not raw
+    // pixels — the drawer's canvas can be a different size than a
+    // guesser's (e.g. the drawer's toolbar takes up extra width that
+    // guessers don't have), so raw pixel coordinates from one canvas
+    // don't line up on another. Scale by *this* canvas's own size instead.
     function strokeToCanvas({ type, x, y, color }) {
       const canvas = canvasRef.current;
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
+      const px = x !== undefined ? x * canvas.width : undefined;
+      const py = y !== undefined ? y * canvas.height : undefined;
       if (type === "start") {
         ctx.beginPath();
-        ctx.moveTo(x, y);
+        ctx.moveTo(px, py);
         ctx.strokeStyle = color;
       } else if (type === "move") {
-        ctx.lineTo(x, y);
+        ctx.lineTo(px, py);
         ctx.stroke();
       } else if (type === "end") {
         ctx.beginPath();
@@ -105,11 +122,14 @@ export default function DrawCanvas({ matchId, sessionToken, isDrawer }) {
 
   function emitStroke(type, point) {
     if (!sessionToken) return;
+    const canvas = canvasRef.current;
+    const nx = point && canvas ? point.x / canvas.width : undefined;
+    const ny = point && canvas ? point.y / canvas.height : undefined;
     getSocket().emit("draw:stroke", {
       matchId,
       type,
-      x: point?.x,
-      y: point?.y,
+      x: nx,
+      y: ny,
       color: currentColor,
     });
   }
