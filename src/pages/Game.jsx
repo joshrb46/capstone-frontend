@@ -247,11 +247,14 @@ export default function Game() {
               <div
                 style={{
                   display: "flex",
+                  flexWrap: "wrap",
                   gap: 12,
                   padding: 24,
                   justifyContent: "center",
                   alignItems: "center",
                   height: "100%",
+                  width: "100%",
+                  boxSizing: "border-box",
                 }}
               >
                 {wordOptions.map((word) => (
@@ -270,6 +273,7 @@ export default function Game() {
                 matchId={matchId}
                 sessionToken={sessionToken}
                 isDrawer={isDrawer}
+                roundId={currentRound?.id}
               />
             )}
           </div>
