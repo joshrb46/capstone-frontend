@@ -122,10 +122,10 @@ export default function Landing() {
   return (
     <div className={styles.landingPage}>
       <div className={styles.landingColors}>
-        <h1 className={styles.landingTitle}>CAPSTONE PROJECT</h1>
+        <h1 className={styles.landingTitle}>Picture It!</h1>
 
         <div className={styles.descriptionBox}>
-          <h3>description of game and directives on landing page</h3>
+          <h3>Sketch it, guess it, Picture It!</h3>
         </div>
 
         {error && (
